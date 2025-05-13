@@ -58,7 +58,51 @@ public class ApiServiceImpl implements ApiService{
     @Override
     public void attractionInsert() {
         // TODO Auto-generated method stub
+	 try {
+        HttpHeaders headers = createDefaultHeaders();
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+	JsonNode items1, items2;
+	String url, json;
+	URI uri;
+	ResponseEntity<String> response;
 
+	for(int i = 1; i < 60; i++){	 
+        // 전체 컨텐츠 삽입 -----------------------------------------------------------------
+        url = "https://apis.data.go.kr/B551011/KorPetTourService/areaBasedList?"
+                 + "serviceKey=" + encodedKey
+                 + "&numOfRows=30&pageNo="
+		 + Integer.toString(i)
+		+ "&MobileOS=WIN&MobileApp=g&_type=json"; 
+        uri = new URI(url);
+        
+        response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
+        json = response.getBody();
+        //System.out.println("응답 내용:\n" + json);
+        
+        items1 = mapper.readTree(json)
+                .path("response").path("body").path("items").path("item");
+
+        List<AttractionDto> list = new ArrayList<>();
+        for (JsonNode item : items1) {
+            AreaDto dto = mapper.convertValue(item, AttractionDto.class);
+            //System.out.println(dto.getName()); // 확인용 출력
+		 url = "https://apis.data.go.kr/B551011/KorPetTourService/detailPetTour?"
+                 + "serviceKey=" + encodedKey
+                 + "&numOfRows=1&MobileOS=WIN&MobileApp=g&contentId="
+		+ dto.getContentId()
+		+ "&_type=json";
+        uri = new URI(url);
+        
+        response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
+        json = response.getBody();
+        
+        items1 = mapper.readTree(json)
+                .path("response").path("body").path("items").path("item");
+		dto = mapper.convertValue(item, AttractionDto.class);
+		list.add(dto);
+        }
+        apiRepo.attractionInsert(list);
+	}
 
     }
 
@@ -230,41 +274,5 @@ public void init() {
     // TODO Auto-generated method stub
     
 }
-//    private final ApiRepo apiRepo;
-//    @Value("${tourapi.service-key}")
-//    private String serviceKey;
-//
-//    public void fetchAndSaveTours() {
-//        String url = "https://apis.data.go.kr/B551011/KorService1/areaBasedList1?"
-//                   + "MobileOS=ETC&MobileApp=PetPlaceApp&_type=json"
-//                   + "&areaCode=1&numOfRows=100&pageNo=1&serviceKey=" + serviceKey;
-//
-//        RestTemplate restTemplate = new RestTemplate();
-//        try {
-//            String response = restTemplate.getForObject(url, String.class);
-//            ObjectMapper mapper = new ObjectMapper();
-//            JsonNode items = mapper.readTree(response)
-//                    .path("response").path("body").path("items").path("item");
-//
-//            List<Tour> tours = new ArrayList<>();
-//            for (JsonNode item : items) {
-//                Tour tour = new Tour();
-//                tour.setTitle(item.path("title").asText());
-//                tour.setAddr(item.path("addr1").asText());
-//                tour.setMapx(item.path("mapx").asDouble());
-//                tour.setMapy(item.path("mapy").asDouble());
-//                tour.setContentId(item.path("contentid").asText());
-//                tour.setContentTypeId(item.path("contenttypeid").asText());
-//                tour.setFirstImage(item.path("firstimage").asText());
-//                tours.add(tour);
-//            }
-//
-//            tourApiRepository.saveTours(tours);
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
-
 
 }
